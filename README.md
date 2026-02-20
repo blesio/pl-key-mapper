@@ -12,16 +12,16 @@ Includes a custom app icon with a `PL` badge, generated during build.
 ## Build
 
 ```bash
-/Users/radek/Projects/KeySwap/Remap-Keys-MenuBar/scripts/build-app.sh
+~/Projects/KeySwap/Remap-Keys-MenuBar/scripts/build-app.sh
 ```
 
 Build output:
-- `/Users/radek/Projects/KeySwap/Remap-Keys-MenuBar/dist/Remap Keys for Polish Language.app`
+- `~/Projects/KeySwap/Remap-Keys-MenuBar/dist/Remap Keys for Polish Language.app`
 
 ## Install (login launch)
 
 ```bash
-/Users/radek/Projects/KeySwap/Remap-Keys-MenuBar/scripts/install-app.sh
+~/Projects/KeySwap/Remap-Keys-MenuBar/scripts/install-app.sh
 ```
 
 Installs to:
@@ -32,7 +32,7 @@ Installs to:
 ## Uninstall
 
 ```bash
-/Users/radek/Projects/KeySwap/Remap-Keys-MenuBar/scripts/uninstall-app.sh
+~/Projects/KeySwap/Remap-Keys-MenuBar/scripts/uninstall-app.sh
 ```
 
 The uninstall script removes the app + launch agent and clears `UserKeyMapping`.
@@ -40,15 +40,15 @@ The uninstall script removes the app + launch agent and clears `UserKeyMapping`.
 ## Build Toggle Installer PKG
 
 ```bash
-/Users/radek/Projects/KeySwap/Remap-Keys-MenuBar/installer/build-pkg.sh
+~/Projects/KeySwap/Remap-Keys-MenuBar/installer/build-pkg.sh
 ```
 
 Output:
-- `/Users/radek/Projects/KeySwap/Remap-Keys-MenuBar/dist/Remap-Keys-for-Polish-Language-MenuBar-v1.0.pkg`
+- `~/Projects/KeySwap/Remap-Keys-MenuBar/dist/Remap-Keys-for-Polish-Language-MenuBar-v1.0.pkg`
 
 Versioning:
 - default package version is `1.0`
-- override when needed: `PKG_VERSION=1.1 /Users/radek/Projects/KeySwap/Remap-Keys-MenuBar/installer/build-pkg.sh`
+- override when needed: `PKG_VERSION=1.1 ~/Projects/KeySwap/Remap-Keys-MenuBar/installer/build-pkg.sh`
 
 Package behavior:
 - 1st run: installs app for the logged-in user at `~/Applications/Remap Keys for Polish Language.app` (fallback: `~/Library/Application Support/Remap Keys for Polish Language/Remap Keys for Polish Language.app`), creates the user LaunchAgent, and launches the app immediately
