@@ -2,6 +2,7 @@
 
 A native macOS menu bar app with independent toggles for:
 - Right Command/Option swap
+- Non-US Backslash (§) / Grave Tick swap (`)
 - F4 -> Lock Screen
 - F6 -> Sleep
 - Show in Menu Bar after Restart (launch at login on/off)
