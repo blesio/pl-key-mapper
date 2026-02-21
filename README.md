@@ -8,6 +8,8 @@ A native macOS menu bar app with independent toggles for:
 - Show in Menu Bar after Restart (launch at login on/off)
 - About dialog with version and credits
 
+DISCLAMER: I'm not a full blown programmer, most was done by Codex
+
 Includes a custom app icon with a `PL` badge, generated during build.
 
 ## Build
