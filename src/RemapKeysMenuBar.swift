@@ -25,8 +25,6 @@ private func offKeyboardImage() -> NSImage? {
     canvas.lockFocus()
     defer { canvas.unlockFocus() }
 
-    // Keep slash inside keyboard glyph bounds so icon remains visually centered
-    // and the line does not span the full icon square.
     let glyphRect = NSRect(
         x: canvas.size.width * 0.15,
         y: canvas.size.height * 0.15,
@@ -39,7 +37,6 @@ private func offKeyboardImage() -> NSImage? {
     let slash = NSBezierPath()
     slash.move(to: start)
     slash.line(to: end)
-
     slash.lineCapStyle = .round
     slash.lineJoinStyle = .round
     slash.lineWidth = 3.0
@@ -77,7 +74,7 @@ private func titleWithInlineSymbol(prefix: String, symbolName: String, suffix: S
 private final class MappingStore {
     private enum Keys {
         static let swapCommandOption = "swapCommandOption"
-        static let swapBackslashGrave = "swapBackslashGrave"
+        static let swapLeftOf1AndISOExtra = "swapLeftOf1AndISOExtra"
         static let mapF4ToLock = "mapF4ToLock"
         static let mapF6ToSleep = "mapF6ToSleep"
     }
@@ -85,13 +82,13 @@ private final class MappingStore {
     private let defaults = UserDefaults.standard
 
     var swapCommandOption: Bool
-    var swapBackslashGrave: Bool
+    var swapLeftOf1AndISOExtra: Bool
     var mapF4ToLock: Bool
     var mapF6ToSleep: Bool
 
     init() {
         self.swapCommandOption = defaults.object(forKey: Keys.swapCommandOption) as? Bool ?? true
-        self.swapBackslashGrave = defaults.object(forKey: Keys.swapBackslashGrave) as? Bool ?? true
+        self.swapLeftOf1AndISOExtra = defaults.object(forKey: Keys.swapLeftOf1AndISOExtra) as? Bool ?? false
         self.mapF4ToLock = defaults.object(forKey: Keys.mapF4ToLock) as? Bool ?? true
         self.mapF6ToSleep = defaults.object(forKey: Keys.mapF6ToSleep) as? Bool ?? true
         save()
@@ -99,7 +96,7 @@ private final class MappingStore {
 
     func save() {
         defaults.set(swapCommandOption, forKey: Keys.swapCommandOption)
-        defaults.set(swapBackslashGrave, forKey: Keys.swapBackslashGrave)
+        defaults.set(swapLeftOf1AndISOExtra, forKey: Keys.swapLeftOf1AndISOExtra)
         defaults.set(mapF4ToLock, forKey: Keys.mapF4ToLock)
         defaults.set(mapF6ToSleep, forKey: Keys.mapF6ToSleep)
     }
@@ -112,7 +109,7 @@ private final class MappingStore {
             pairs.append(MappingPair(src: "0x7000000E7", dst: "0x7000000E6"))
         }
 
-        if swapBackslashGrave {
+        if swapLeftOf1AndISOExtra {
             pairs.append(MappingPair(src: "0x700000064", dst: "0x700000035"))
             pairs.append(MappingPair(src: "0x700000035", dst: "0x700000064"))
         }
@@ -145,9 +142,7 @@ private final class MappingStore {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/hidutil")
         process.arguments = ["property", "--set", payload]
 
-        let stdout = Pipe()
         let stderr = Pipe()
-        process.standardOutput = stdout
         process.standardError = stderr
 
         try process.run()
@@ -172,9 +167,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     private let menu = NSMenu()
 
     private var swapItem: NSMenuItem!
-    private var backslashGraveItem: NSMenuItem!
+    private var swapLeftOf1ISOItem: NSMenuItem!
     private var lockItem: NSMenuItem!
     private var sleepItem: NSMenuItem!
+    private var aboutItem: NSMenuItem!
     private var statusLineItem: NSMenuItem!
     private var launchAtLoginItem: NSMenuItem!
 
@@ -198,22 +194,22 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(titleItem)
         menu.addItem(.separator())
 
-        swapItem = NSMenuItem(title: "Swap Right Command/Option", action: #selector(toggleSwap), keyEquivalent: "")
+        swapItem = NSMenuItem(title: "Swap Right Command / Option (PL)", action: #selector(toggleSwap), keyEquivalent: "")
         swapItem.target = self
         menu.addItem(swapItem)
 
-        backslashGraveItem = NSMenuItem(title: "Swap Backslash / Grave Tick", action: #selector(toggleBackslashGrave), keyEquivalent: "")
-        backslashGraveItem.target = self
-        menu.addItem(backslashGraveItem)
+        swapLeftOf1ISOItem = NSMenuItem(title: "Swap Backslash / Grave Tick (UK)", action: #selector(toggleLeftOf1ISOExtraSwap), keyEquivalent: "")
+        swapLeftOf1ISOItem.target = self
+        menu.addItem(swapLeftOf1ISOItem)
 
-        lockItem = NSMenuItem(title: "F4 -> Lock Screen", action: #selector(toggleLock), keyEquivalent: "")
+        lockItem = NSMenuItem(title: "F4 magnifying glass as Lock Screen", action: #selector(toggleLock), keyEquivalent: "")
         lockItem.target = self
-        lockItem.attributedTitle = titleWithInlineSymbol(prefix: "F4", symbolName: "magnifyingglass", suffix: "-> Lock Screen")
+        lockItem.attributedTitle = titleWithInlineSymbol(prefix: "F4", symbolName: "magnifyingglass", suffix: "as Lock Screen")
         menu.addItem(lockItem)
 
-        sleepItem = NSMenuItem(title: "F6 -> Sleep", action: #selector(toggleSleep), keyEquivalent: "")
+        sleepItem = NSMenuItem(title: "F6 moon as Sleep/Shutdown", action: #selector(toggleSleep), keyEquivalent: "")
         sleepItem.target = self
-        sleepItem.attributedTitle = titleWithInlineSymbol(prefix: "F6", symbolName: "moon", suffix: "-> Sleep")
+        sleepItem.attributedTitle = titleWithInlineSymbol(prefix: "F6", symbolName: "moon", suffix: "as Sleep/Shutdown")
         menu.addItem(sleepItem)
 
         menu.addItem(.separator())
@@ -230,6 +226,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
+        aboutItem = NSMenuItem(title: "About", action: #selector(showAbout), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+
+        menu.addItem(.separator())
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -239,7 +241,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshToggleStates() {
         swapItem.state = store.swapCommandOption ? .on : .off
-        backslashGraveItem.state = store.swapBackslashGrave ? .on : .off
+        swapLeftOf1ISOItem.state = store.swapLeftOf1AndISOExtra ? .on : .off
         lockItem.state = store.mapF4ToLock ? .on : .off
         sleepItem.state = store.mapF6ToSleep ? .on : .off
     }
@@ -306,10 +308,6 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
             """
 
             try plist.write(to: plistURL, atomically: true, encoding: .utf8)
-
-            try launchctl(["bootout", "gui/\(uid)/\(LaunchAgentConfig.label)"], allowFailure: true)
-            try launchctl(["bootout", "gui/\(uid)", plistURL.path], allowFailure: true)
-            try launchctl(["bootstrap", "gui/\(uid)", plistURL.path])
         } else {
             try launchctl(["bootout", "gui/\(uid)/\(LaunchAgentConfig.label)"], allowFailure: true)
             try launchctl(["bootout", "gui/\(uid)", plistURL.path], allowFailure: true)
@@ -320,7 +318,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     private func activeOptionCount() -> Int {
         var count = 0
         if store.swapCommandOption { count += 1 }
-        if store.swapBackslashGrave { count += 1 }
+        if store.swapLeftOf1AndISOExtra { count += 1 }
         if store.mapF4ToLock { count += 1 }
         if store.mapF6ToSleep { count += 1 }
         return count
@@ -358,8 +356,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
         applyMappingsAndUpdateStatus()
     }
 
-    @objc private func toggleBackslashGrave() {
-        store.swapBackslashGrave.toggle()
+    @objc private func toggleLeftOf1ISOExtraSwap() {
+        store.swapLeftOf1AndISOExtra.toggle()
         store.save()
         refreshToggleStates()
         applyMappingsAndUpdateStatus()
@@ -387,6 +385,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
             statusLineItem.title = "Status: Error - \(error.localizedDescription)"
         }
         refreshLaunchAtLoginState()
+    }
+
+    @objc private func showAbout() {
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+
+        let alert = NSAlert()
+        alert.messageText = "Remap Keys for Polish Language"
+        alert.informativeText = """
+        Version: \(appVersion) (\(buildVersion))
+        Author: Radek Blechman
+        https://github.com/blesio
+        Contributor: Krzysztof Hajdamowicz
+        https://github.com/KrzysztofHajdamowicz
+        """
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     @objc private func quitApp() {

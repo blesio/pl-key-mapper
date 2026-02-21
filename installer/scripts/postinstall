@@ -1,18 +1,11 @@
 #!/bin/zsh
 set -euo pipefail
 
-state_path="/tmp/com.local.RemapKeysForPLLanguage.MenuBar.pkg-state"
 label="com.local.RemapKeysForPLLanguage.MenuBar"
 app_name="Remap Keys for Polish Language"
 legacy_app_name="Remap Keys for PL Language"
 exec_name="RemapKeysForPLLanguageMenuBar"
 logged_in_user="$(/usr/bin/stat -f%Su /dev/console || true)"
-was_installed=0
-
-if [[ -f "$state_path" ]]; then
-  was_installed="$(/bin/cat "$state_path" 2>/dev/null || printf '0')"
-fi
-/bin/rm -f "$state_path"
 
 if [[ -z "$logged_in_user" || "$logged_in_user" == "root" ]]; then
   exit 0
@@ -23,6 +16,7 @@ plist_dir="/Users/$logged_in_user/Library/LaunchAgents"
 plist_path="$plist_dir/$label.plist"
 payload_root="/Library/Application Support/RemapKeysForPolishLanguageMenuBarInstaller"
 payload_archive="$payload_root/RemapKeysForPolishLanguage.app.tar.gz"
+payload_version_file="$payload_root/package-version.txt"
 user_app_root="/Users/$logged_in_user/Applications"
 local_app_dir="/Users/$logged_in_user/Library/Application Support/Remap Keys for Polish Language"
 local_app_path="$local_app_dir/$app_name.app"
@@ -34,26 +28,81 @@ legacy_system_app_path="/Applications/$legacy_app_name.app"
 legacy_user_app_path="/Users/$logged_in_user/Applications/$legacy_app_name.app"
 prefs_path="/Users/$logged_in_user/Library/Preferences/com.local.RemapKeysForPLLanguage.menubar.plist"
 
+incoming_version="$(/bin/cat "$payload_version_file" 2>/dev/null | /usr/bin/tr -d '[:space:]' || true)"
+
 stop_service() {
   /bin/launchctl bootout "gui/$uid/$label" >/dev/null 2>&1 || true
   /bin/launchctl bootout "gui/$uid" "$plist_path" >/dev/null 2>&1 || true
   /usr/bin/pkill -f "$exec_name" >/dev/null 2>&1 || true
 }
 
+detect_installed_app() {
+  for app_path in \
+    "$user_app_path" \
+    "$local_app_path" \
+    "$system_app_path" \
+    "$legacy_user_app_path" \
+    "$legacy_local_app_path" \
+    "$legacy_system_app_path"
+  do
+    if [[ -d "$app_path" ]]; then
+      printf '%s\n' "$app_path"
+      return 0
+    fi
+  done
+  return 1
+}
+
+normalize_version() {
+  local v="$1"
+  v="${v//[^0-9.]/}"
+  [[ -z "$v" ]] && v="0"
+  printf '%s\n' "$v"
+}
+
+version_cmp() {
+  local left="$1"
+  local right="$2"
+  local -a left_parts right_parts
+  local i max li ri
+
+  left_parts=(${(s:.:)left})
+  right_parts=(${(s:.:)right})
+
+  (( max = ${#left_parts} > ${#right_parts} ? ${#left_parts} : ${#right_parts} ))
+
+  for ((i = 1; i <= max; i++)); do
+    li=${left_parts[i]:-0}
+    ri=${right_parts[i]:-0}
+
+    (( li > ri )) && { printf '1\n'; return 0; }
+    (( li < ri )) && { printf -- '-1\n'; return 0; }
+  done
+
+  printf '0\n'
+}
+
+installed_version_for_app() {
+  local app_path="$1"
+  /usr/bin/defaults read "$app_path/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || true
+}
+
 install_current() {
-  installed_app_path="$user_app_path"
-  install_root="$user_app_root"
+  local installed_app_path="$user_app_path"
+  local install_root="$user_app_root"
 
   /bin/mkdir -p "$plist_dir" "$user_app_root" "$local_app_dir"
   /usr/sbin/chown "$logged_in_user":staff "$user_app_root" "$local_app_dir" >/dev/null 2>&1 || true
 
   /bin/rm -rf "$user_app_path" "$local_app_path" "$system_app_path" "$legacy_user_app_path" "$legacy_local_app_path" "$legacy_system_app_path"
+
   if ! /usr/bin/tar -xzf "$payload_archive" -C "$install_root" >/dev/null 2>&1; then
     install_root="$local_app_dir"
     installed_app_path="$local_app_path"
     /bin/rm -rf "$installed_app_path"
     /usr/bin/tar -xzf "$payload_archive" -C "$install_root"
   fi
+
   /usr/sbin/chown -R "$logged_in_user":staff "$installed_app_path" >/dev/null 2>&1 || true
 
   cat > "$plist_path" << PLIST
@@ -95,7 +144,18 @@ uninstall_current() {
   /bin/launchctl asuser "$uid" /usr/bin/hidutil property --set '{"UserKeyMapping":[]}' >/dev/null 2>&1 || /usr/bin/hidutil property --set '{"UserKeyMapping":[]}' >/dev/null 2>&1 || true
 }
 
-if [[ "$was_installed" == "1" ]]; then
+installed_app="$(detect_installed_app || true)"
+
+if [[ -z "$installed_app" ]]; then
+  install_current
+  exit 0
+fi
+
+installed_version="$(installed_version_for_app "$installed_app")"
+installed_version="$(normalize_version "$installed_version")"
+incoming_version="$(normalize_version "$incoming_version")"
+
+if [[ "$(version_cmp "$installed_version" "$incoming_version")" == "0" ]]; then
   uninstall_current
 else
   install_current

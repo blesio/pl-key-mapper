@@ -11,6 +11,8 @@ app_name="Remap Keys for Polish Language"
 legacy_app_name="Remap Keys for PL Language"
 bundle_id="com.local.RemapKeysForPLLanguage.menubar"
 exec_name="RemapKeysForPLLanguageMenuBar"
+app_version="${APP_VERSION:-1.2}"
+app_build="${APP_BUILD:-1.2}"
 app_dir="$out_dir/$app_name.app"
 legacy_app_dir="$out_dir/$legacy_app_name.app"
 contents_dir="$app_dir/Contents"
@@ -92,9 +94,9 @@ cat > "$plist_path" << PLIST
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>$app_version</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>$app_build</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSPrincipalClass</key>

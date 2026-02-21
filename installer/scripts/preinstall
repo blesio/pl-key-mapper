@@ -1,26 +1,5 @@
 #!/bin/zsh
 set -euo pipefail
 
-state_path="/tmp/com.local.RemapKeysForPLLanguage.MenuBar.pkg-state"
-app_name="Remap Keys for Polish Language"
-legacy_app_name="Remap Keys for PL Language"
-logged_in_user="$(/usr/bin/stat -f%Su /dev/console || true)"
-was_installed=0
-
-if [[ -n "$logged_in_user" && "$logged_in_user" != "root" ]]; then
-  local_app_path="/Users/$logged_in_user/Library/Application Support/Remap Keys for Polish Language/$app_name.app"
-  user_app_path="/Users/$logged_in_user/Applications/$app_name.app"
-  system_app_path="/Applications/$app_name.app"
-  legacy_local_app_path="/Users/$logged_in_user/Library/Application Support/Remap Keys for PL Language/$legacy_app_name.app"
-  legacy_user_app_path="/Users/$logged_in_user/Applications/$legacy_app_name.app"
-  legacy_system_app_path="/Applications/$legacy_app_name.app"
-
-  if [[ -d "$local_app_path" || -d "$user_app_path" || -d "$system_app_path" || -d "$legacy_local_app_path" || -d "$legacy_user_app_path" || -d "$legacy_system_app_path" ]]; then
-    was_installed=1
-  fi
-fi
-
-printf '%s\n' "$was_installed" > "$state_path"
-/bin/chmod 600 "$state_path"
-
+/bin/rm -f /tmp/com.local.RemapKeysForPLLanguage.MenuBar.pkg-state >/dev/null 2>&1 || true
 exit 0
