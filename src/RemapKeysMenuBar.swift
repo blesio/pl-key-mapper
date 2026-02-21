@@ -77,6 +77,7 @@ private func titleWithInlineSymbol(prefix: String, symbolName: String, suffix: S
 private final class MappingStore {
     private enum Keys {
         static let swapCommandOption = "swapCommandOption"
+        static let swapBackslashGrave = "swapBackslashGrave"
         static let mapF4ToLock = "mapF4ToLock"
         static let mapF6ToSleep = "mapF6ToSleep"
     }
@@ -84,11 +85,13 @@ private final class MappingStore {
     private let defaults = UserDefaults.standard
 
     var swapCommandOption: Bool
+    var swapBackslashGrave: Bool
     var mapF4ToLock: Bool
     var mapF6ToSleep: Bool
 
     init() {
         self.swapCommandOption = defaults.object(forKey: Keys.swapCommandOption) as? Bool ?? true
+        self.swapBackslashGrave = defaults.object(forKey: Keys.swapBackslashGrave) as? Bool ?? true
         self.mapF4ToLock = defaults.object(forKey: Keys.mapF4ToLock) as? Bool ?? true
         self.mapF6ToSleep = defaults.object(forKey: Keys.mapF6ToSleep) as? Bool ?? true
         save()
@@ -96,6 +99,7 @@ private final class MappingStore {
 
     func save() {
         defaults.set(swapCommandOption, forKey: Keys.swapCommandOption)
+        defaults.set(swapBackslashGrave, forKey: Keys.swapBackslashGrave)
         defaults.set(mapF4ToLock, forKey: Keys.mapF4ToLock)
         defaults.set(mapF6ToSleep, forKey: Keys.mapF6ToSleep)
     }
@@ -106,6 +110,11 @@ private final class MappingStore {
         if swapCommandOption {
             pairs.append(MappingPair(src: "0x7000000E6", dst: "0x7000000E7"))
             pairs.append(MappingPair(src: "0x7000000E7", dst: "0x7000000E6"))
+        }
+
+        if swapBackslashGrave {
+            pairs.append(MappingPair(src: "0x700000064", dst: "0x700000035"))
+            pairs.append(MappingPair(src: "0x700000035", dst: "0x700000064"))
         }
 
         if mapF4ToLock {
@@ -163,6 +172,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     private let menu = NSMenu()
 
     private var swapItem: NSMenuItem!
+    private var backslashGraveItem: NSMenuItem!
     private var lockItem: NSMenuItem!
     private var sleepItem: NSMenuItem!
     private var statusLineItem: NSMenuItem!
@@ -191,6 +201,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
         swapItem = NSMenuItem(title: "Swap Right Command/Option", action: #selector(toggleSwap), keyEquivalent: "")
         swapItem.target = self
         menu.addItem(swapItem)
+
+        backslashGraveItem = NSMenuItem(title: "Swap Backslash / Grave Tick", action: #selector(toggleBackslashGrave), keyEquivalent: "")
+        backslashGraveItem.target = self
+        menu.addItem(backslashGraveItem)
 
         lockItem = NSMenuItem(title: "F4 -> Lock Screen", action: #selector(toggleLock), keyEquivalent: "")
         lockItem.target = self
@@ -225,6 +239,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshToggleStates() {
         swapItem.state = store.swapCommandOption ? .on : .off
+        backslashGraveItem.state = store.swapBackslashGrave ? .on : .off
         lockItem.state = store.mapF4ToLock ? .on : .off
         sleepItem.state = store.mapF6ToSleep ? .on : .off
     }
@@ -305,6 +320,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     private func activeOptionCount() -> Int {
         var count = 0
         if store.swapCommandOption { count += 1 }
+        if store.swapBackslashGrave { count += 1 }
         if store.mapF4ToLock { count += 1 }
         if store.mapF6ToSleep { count += 1 }
         return count
@@ -337,6 +353,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleSwap() {
         store.swapCommandOption.toggle()
+        store.save()
+        refreshToggleStates()
+        applyMappingsAndUpdateStatus()
+    }
+
+    @objc private func toggleBackslashGrave() {
+        store.swapBackslashGrave.toggle()
         store.save()
         refreshToggleStates()
         applyMappingsAndUpdateStatus()
