@@ -12,6 +12,8 @@ DISCLAMER: I'm not a full blown programmer, most was done by Codex
 
 Includes a custom app icon with a `PL` badge, generated during build.
 
+<img width="326" height="322" alt="image" src="https://github.com/user-attachments/assets/35c23d9a-e68b-4330-84d8-75b19032d39a" />
+
 ## Build
 
 ```bash
